@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:oauth="http://www.springframework.org/schema/security/oauth2" xmlns:sec="http://www.springframework.org/schema/security"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-1.0.xsd
+		http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-3.1.xsd
+		        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context-3.1.xsd      
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.1.xsd
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd">
+
+	<context:component-scan
+		base-package="org.socialsignin.exfmproxy.conf" />
+	
+	<!-- Just for testing... -->
+	<http pattern="/oauth/cache_approvals" security="none" xmlns="http://www.springframework.org/schema/security" />
+	<http pattern="/oauth/uncache_approvals" security="none" xmlns="http://www.springframework.org/schema/security" />
+
+	<http pattern="/oauth/token" create-session="stateless" authentication-manager-ref="clientAuthenticationManager"
+		entry-point-ref="oauthAuthenticationEntryPoint" xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/oauth/token" access="IS_AUTHENTICATED_FULLY" />
+		<anonymous enabled="false" />
+		<http-basic entry-point-ref="oauthAuthenticationEntryPoint" />
+		<!-- include this only if you need to authenticate clients via request parameters -->
+		<custom-filter ref="clientCredentialsTokenEndpointFilter" before="BASIC_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+
+	<!-- The OAuth2 protected resources are separated out into their own block so we can deal with authorization and error handling 
+		separately. This isn't mandatory, but it makes it easier to control the behaviour. -->
+	
+	<http pattern="/oauth/(users|clients)/.*" request-matcher="regex" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
+		use-expressions="true" xmlns="http://www.springframework.org/schema/security">
+		<anonymous enabled="false" />
+		<intercept-url pattern="/oauth/users/([^/].*?)/tokens/.*"
+			access="#oauth2.clientHasRole('ROLE_CLIENT') and (hasRole('ROLE_USER') or #oauth2.isClient()) and #oauth2.hasScope('write')"
+			method="DELETE" />
+		<intercept-url pattern="/oauth/users/.*"
+			access="#oauth2.clientHasRole('ROLE_CLIENT') and (hasRole('ROLE_USER') or #oauth2.isClient()) and #oauth2.hasScope('read')"
+			method="GET" />
+		<intercept-url pattern="/oauth/clients/.*" access="#oauth2.clientHasRole('ROLE_CLIENT') and #oauth2.isClient() and #oauth2.hasScope('read')"
+			method="GET" />
+		<custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER" />
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+		<expression-handler ref="oauthWebExpressionHandler" />
+	</http>
+
+		<!-- The OAuth2 protected resources are separated out into their own block so we can deal with authorization and error handling 
+		separately. This isn't mandatory, but it makes it easier to control the behaviour. -->
+	<http pattern="/api/v3/**" use-expressions="true" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
+		access-decision-manager-ref="accessDecisionManager" xmlns="http://www.springframework.org/schema/security">
+		<anonymous enabled="true" />
+		<intercept-url pattern="/api/v3/me" method="GET" access="hasRole('ROLE_USER')" />
+			<intercept-url pattern="/api/v3/me/loved" method="GET" access="hasRole('ROLE_USER')" />
+				<intercept-url pattern="/api/v3/song/**"  method="GET" access="permitAll" />
+				<intercept-url pattern="/api/v3/song/**/love"  method="POST" access="hasRole('ROLE_USER')" />
+			    <intercept-url pattern="/api/v3/song/search/**"  method="GET" access="permitAll" />
+			    <intercept-url pattern="/api/v3/user/**"  method="GET" access="permitAll" />
+			   <intercept-url pattern="/api/v3/user/loved"  method="GET" access="permitAll" />
+		
+		<!-- 
+		<intercept-url pattern="/photos/trusted/**" access="ROLE_CLIENT,SCOPE_TRUST" />
+		<intercept-url pattern="/photos/user/**" access="ROLE_USER,SCOPE_TRUST" />
+		<intercept-url pattern="/photos/**" access="ROLE_USER,SCOPE_READ" />
+		 -->
+		<intercept-url pattern="/api/v3/**" access="denyAll" />
+		<custom-filter ref="resourceServerFilter" before="PRE_AUTH_FILTER" />
+				<expression-handler ref="oauthWebExpressionHandler" />	
+		<access-denied-handler ref="oauthAccessDeniedHandler" />
+	</http>
+	
+	<http entry-point-ref="loginFormEntryPoint"   access-denied-page="/login.jsp?authorization_error=true" disable-url-rewriting="true"
+		xmlns="http://www.springframework.org/schema/security">
+		<intercept-url pattern="/oauth/**" access="ROLE_USER" />
+		<intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+		<logout logout-success-url="/index.jsp" logout-url="/logout.do" />
+		
+		<anonymous />
+		
+				<custom-filter position="FORM_LOGIN_FILTER"
+			ref="workaroundUsernamePasswordAuthenticationFilter" />
+
+		
+	</http>
+	
+	<bean id="workaroundUsernamePasswordAuthenticationFilter" class="org.socialsignin.exfmproxy.mvc.workaround.auth.WorkaroundUsernamePasswordAuthenticationFilter">
+		<property name="authenticationSuccessHandler" ref="authenticationSuccessHandler" />
+		<property name="authenticationFailureHandler" ref="authenticationFailureHandler" />
+	
+	</bean>
+	
+	<bean id="loginFormEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint">
+ 		<property name="loginFormUrl" value="/login.jsp"/>
+	</bean>
+	
+	<bean id="authenticationFailureHandler" class="org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler">
+		<constructor-arg value="/login.jsp?authentication_error=true" />
+	</bean>
+	
+	<bean id="authenticationSuccessHandler" class="org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler">
+		<property name="defaultTargetUrl" value="/index.jsp" />
+	</bean>
+
+
+	<bean id="oauthAuthenticationEntryPoint" class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+		<property name="realmName" value="Cloudplaylists" />
+	</bean>
+
+	<bean id="oauthAccessDeniedHandler" class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler" />
+
+	<bean id="clientCredentialsTokenEndpointFilter" class="org.springframework.security.oauth2.provider.client.ClientCredentialsTokenEndpointFilter">
+		<property name="authenticationManager" ref="clientAuthenticationManager" />
+	</bean>
+
+	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased" xmlns="http://www.springframework.org/schema/beans">
+		<constructor-arg>
+			<list>
+				<bean class="org.springframework.security.web.access.expression.WebExpressionVoter"/>
+				<bean class="org.springframework.security.oauth2.provider.vote.ScopeVoter" />
+				<bean class="org.springframework.security.access.vote.RoleVoter" />
+				<bean class="org.springframework.security.access.vote.AuthenticatedVoter" />
+			</list>
+		</constructor-arg>
+	</bean>
+
+	<authentication-manager id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+		<authentication-provider user-service-ref="clientDetailsUserService" />
+	</authentication-manager>
+	
+		<authentication-manager alias="authenticationManager" xmlns="http://www.springframework.org/schema/security">
+		<authentication-provider
+			user-service-ref="exFmUserDetailsService" />
+	</authentication-manager>
+
+	<bean id="clientDetailsUserService" class="org.springframework.security.oauth2.provider.client.ClientDetailsUserDetailsService">
+		<constructor-arg ref="clientDetails" />
+	</bean>
+
+	<bean id="tokenStore" class="org.springframework.security.oauth2.provider.token.JdbcTokenStore" >
+		<constructor-arg ref="dataSource" />
+	</bean>
+
+	<bean id="tokenServices" class="org.springframework.security.oauth2.provider.token.DefaultTokenServices">
+		<property name="tokenStore" ref="tokenStore" />
+		<property name="supportRefreshToken" value="true" />
+		<property name="clientDetailsService" ref="clientDetails"/>
+	</bean>
+
+	<bean id="userApprovalHandler" class="org.socialsignin.exfmproxy.oauth.ExFmUserApprovalHandler">
+		<property name="autoApproveClients">
+			<set>
+			</set>
+		</property>
+		<property name="tokenServices" ref="tokenServices" />
+	</bean>
+
+	<oauth:authorization-server client-details-service-ref="clientDetails" token-services-ref="tokenServices"
+		user-approval-handler-ref="userApprovalHandler">
+		<oauth:authorization-code />
+		<oauth:implicit />
+		<oauth:refresh-token />
+		<oauth:client-credentials />
+		<oauth:password />
+	</oauth:authorization-server>
+
+	<oauth:resource-server id="resourceServerFilter" resource-id="exfmproxy" token-services-ref="tokenServices" />
+
+	<oauth:client-details-service id="clientDetails">
+		<oauth:client client-id="cloudplaylists" redirect-uri="http://api.cloudplaylists.com" resource-ids="exfmproxy" authorized-grant-types="authorization_code,refresh_token,implicit"
+			authorities="ROLE_CLIENT" scope="read,write" secret="secret" />
+		<oauth:client client-id="socialsignin" redirect-uri="http://socialsignin.com" resource-ids="exfmproxy" authorized-grant-types="authorization_code,refresh_token,implicit"
+			authorities="ROLE_CLIENT" scope="read,write" secret="secret" />
+	</oauth:client-details-service>
+
+	<mvc:annotation-driven />
+
+	<mvc:default-servlet-handler />
+
+	<sec:global-method-security pre-post-annotations="enabled" proxy-target-class="true">
+		<!--you could also wire in the expression handler up at the layer of the http filters. See https://jira.springsource.org/browse/SEC-1452 -->
+		<sec:expression-handler ref="oauthExpressionHandler" />
+	</sec:global-method-security>
+
+	<oauth:expression-handler id="oauthExpressionHandler" />
+
+	<oauth:web-expression-handler id="oauthWebExpressionHandler" />
+	
+	<!--Basic application beans. -->
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<property name="mediaTypes">
+			<map>
+				<entry key="json" value="application/json" />
+			</map>
+		</property>
+		<property name="viewResolvers">
+			<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+				<property name="prefix" value="/WEB-INF/jsp/"></property>
+				<property name="suffix" value=".jsp"></property>
+			</bean>
+		</property>
+		<property name="defaultViews">
+			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView">
+				<property name="extractValueFromSingleKeyModel" value="true"/>
+			</bean>
+		</property>
+	</bean>
+
+	
+		<bean id="exFmProxyController" class="org.socialsignin.exfmproxy.mvc.ExFmProxyController">
+	</bean>
+	
+			<context:component-scan
+				base-package="org.socialsignin.exfmproxy.mvc.workaround.auth" />
+		
+
+	<bean id="adminController" class="org.socialsignin.exfmproxy.mvc.AdminController">
+		<property name="tokenServices" ref="tokenServices" />
+		<property name="userApprovalHandler" ref="userApprovalHandler" />
+	</bean>
+
+	<!-- Override the default mappings for approval and error pages -->
+	<bean id="accessConfirmationController" class="org.socialsignin.exfmproxy.mvc.AccessConfirmationController">
+		<property name="clientDetailsService" ref="clientDetails" />
+	</bean>
+
+</beans>
