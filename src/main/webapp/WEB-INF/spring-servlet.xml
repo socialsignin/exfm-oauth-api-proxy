@@ -169,7 +169,7 @@
 	<oauth:client-details-service id="clientDetails">
 		<oauth:client client-id="cloudplaylists" redirect-uri="http://api.cloudplaylists.com" resource-ids="exfmproxy" authorized-grant-types="authorization_code,refresh_token,implicit"
 			authorities="ROLE_CLIENT" scope="read,write" secret="secret" />
-		<oauth:client client-id="socialsignin" redirect-uri="http://socialsignin.com" resource-ids="exfmproxy" authorized-grant-types="authorization_code,refresh_token,implicit"
+		<oauth:client client-id="socialsignin" redirect-uri="http://socialsignin.org" resource-ids="exfmproxy" authorized-grant-types="authorization_code,refresh_token,implicit"
 			authorities="ROLE_CLIENT" scope="read,write" secret="secret" />
 	</oauth:client-details-service>
 
