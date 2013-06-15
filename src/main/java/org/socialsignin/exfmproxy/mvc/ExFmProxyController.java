@@ -1,20 +1,20 @@
 package org.socialsignin.exfmproxy.mvc;
 
 /*
- * Copyright 2012 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Copyright 2012 the original author or authors.
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
 import java.util.Arrays;
 
 import javax.servlet.http.HttpServletRequest;
@@ -38,14 +38,14 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 
 /**
- * Controller which proxies requests to ExFm's API
- * Designed to support a subset of ExFm's API methods which can be proxied using
- * specific requestmapping patterns - these patterns are specified in Spring Security config - access for
- * non-matching patterns will be denied by Spring Security
- * 
- * @author Michael Lavelle
- *
- */
+* Controller which proxies requests to ExFm's API
+* Designed to support a subset of ExFm's API methods which can be proxied using
+* specific requestmapping patterns - these patterns are specified in Spring Security config - access for
+* non-matching patterns will be denied by Spring Security
+* 
+* @author Michael Lavelle
+*
+*/
 @RequestMapping("/api/v3")
 @Controller
 public class ExFmProxyController {
@@ -97,18 +97,21 @@ public class ExFmProxyController {
 	}
 	
 	
-	public String addContextParams(String source,String context)
+	public String addContextParams(String url,String source,String context)
 	{
+		
+		String delimiter = url.indexOf("?") == -1 ? "?" : "&";
 		String contextParamString = "";
 		if (source != null)
 		{
-			contextParamString = contextParamString + "&source=" + source;
+			contextParamString = contextParamString + delimiter + "source=" + source;
+			delimiter = "&";
 		}
 		if (context != null)
 		{
-			contextParamString = contextParamString + "&context=" + context;
+			contextParamString = contextParamString + delimiter + "context=" + context;
 		}
-		return contextParamString;
+		return url + contextParamString;
 	}
 	
 
@@ -116,12 +119,11 @@ public class ExFmProxyController {
 	@RequestMapping("/song/{songId}/love")
 	public String loveSong(HttpServletRequest request,HttpServletResponse response,
 			@PathVariable("songId") String songId,
-		@RequestParam(required=false) String source,@RequestParam(required=false) String context) {
+		@RequestParam(value="source",required=false) String source,@RequestParam(value="context",required=false) String context) {
 		response.setContentType("application/json");
 		
 		String url = baseUrl + "song/" + songId + "/love";
-		
-		return getJson(request,addAuthentication(url) + addContextParams(source,context));
+		return getJson(request,addContextParams(addAuthentication(url),source,context));
 	}
 	
 	
