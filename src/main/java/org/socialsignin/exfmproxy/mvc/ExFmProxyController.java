@@ -33,6 +33,7 @@ import org.springframework.social.exfm.api.impl.ExFmTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 
@@ -95,16 +96,32 @@ public class ExFmProxyController {
 		return json.trim();
 	}
 	
+	
+	public String addContextParams(String source,String context)
+	{
+		String contextParamString = "";
+		if (source != null)
+		{
+			contextParamString = contextParamString + "&source=" + source;
+		}
+		if (context != null)
+		{
+			contextParamString = contextParamString + "&context=" + context;
+		}
+		return contextParamString;
+	}
+	
 
 	@ResponseBody
 	@RequestMapping("/song/{songId}/love")
 	public String loveSong(HttpServletRequest request,HttpServletResponse response,
-			@PathVariable("songId") String songId
-		) {
+			@PathVariable("songId") String songId,
+		@RequestParam(required=false) String source,@RequestParam(required=false) String context) {
 		response.setContentType("application/json");
-
+		
 		String url = baseUrl + "song/" + songId + "/love";
-		return getJson(request,addAuthentication(url));
+		
+		return getJson(request,addAuthentication(url) + addContextParams(source,context));
 	}
 	
 	
