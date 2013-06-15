@@ -35,7 +35,7 @@
 					value="" /></label>
 			</p>
 			<p>
-				<label>Password: <input type='text' name='j_password'
+				<label>Password: <input type='password' name='j_password'
 					value="" /></label>
 			</p>
 

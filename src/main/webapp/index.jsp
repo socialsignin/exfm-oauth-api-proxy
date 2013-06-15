@@ -31,7 +31,7 @@
       <h2>Login</h2>
       <form id="loginForm" name="loginForm" action="<c:url value="/login.do"/>" method="post">
         <p><label>ExFm Username: <input type='text' name='j_username' value=""></label></p>
-        <p><label>ExFm Password: <input type='text' name='j_password' value=""></label></p>
+        <p><label>ExFm Password: <input type='password' name='j_password' value=""></label></p>
         
         <p><input name="login" value="Login" type="submit"></p>
       </form>
