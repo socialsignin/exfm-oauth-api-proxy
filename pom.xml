@@ -8,11 +8,11 @@
 	<name>oauth proxy to exfm's api</name>
 	<url>http://exfmproxy.socialsignin.org</url>
 	<properties>
-		<org.springframework.version>3.1.2.RELEASE</org.springframework.version>
+		<org.springframework.version>4.0.2.RELEASE</org.springframework.version>
 		<org.springframework.security.oauth.version>1.0.1.RELEASE</org.springframework.security.oauth.version>
-		<org.springframework.social.exfm.version>1.0.2-SNAPSHOT</org.springframework.social.exfm.version>
+		<org.springframework.social.exfm.version>1.1.0-SNAPSHOT</org.springframework.social.exfm.version>
 		<org.springframework.security.version>3.1.2.RELEASE</org.springframework.security.version>
-		<org.socialsignin.spring.security.version>1.0.2.RELEASE</org.socialsignin.spring.security.version>
+		<org.socialsignin.spring.security.version>1.1.0-SNAPSHOT</org.socialsignin.spring.security.version>
 	</properties>
 	<repositories>
 		<repository>
